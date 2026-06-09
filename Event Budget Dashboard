@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Event Team Budget Dashboard</title>
+<link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f5f5f4; --bg3: #eeede8;
+    --text: #1a1a18; --text2: #73726c; --text3: #9c9a92;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.2);
+    --blue: #378ADD; --blue-dark: #185FA5; --blue-light: #E6F1FB; --blue-text: #0C447C;
+    --green: #1D9E75; --green-light: #EAF3DE; --green-text: #3B6D11;
+    --coral: #D85A30; --coral-light: #FAECE7; --coral-text: #712B13;
+    --purple: #7F77DD; --purple-light: #EEEDFE; --purple-text: #3C3489;
+    --amber: #EF9F27; --amber-light: #FAEEDA; --amber-text: #854F0B;
+    --red: #E24B4A; --red-light: #FCEBEB; --red-text: #A32D2D;
+    --radius: 8px; --radius-lg: 12px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a; --bg2: #252523; --bg3: #2e2e2b;
+      --text: #e8e6de; --text2: #9c9a92; --text3: #73726c;
+      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.18);
+      --blue-light: #0c2d4a; --blue-text: #85B7EB;
+      --green-light: #0d2e1e; --green-text: #5DCAA5;
+      --coral-light: #3a1a0e; --coral-text: #F0997B;
+      --purple-light: #1e1b40; --purple-text: #AFA9EC;
+      --amber-light: #2e1f08; --amber-text: #FAC775;
+      --red-light: #2e0e0e; --red-text: #F09595;
+    }
+  }
+  body { font-family: var(--font); background: var(--bg3); color: var(--text); min-height: 100vh; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+  .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px; background: var(--bg); border-radius: var(--radius-lg); padding: 1rem 1.25rem; border: 0.5px solid var(--border); }
+  .page-title { font-size: 18px; font-weight: 600; color: var(--text); }
+  .page-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .top-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .status-pill { font-size: 12px; padding: 4px 10px; border-radius: 99px; border: 0.5px solid var(--border2); color: var(--text2); display: flex; align-items: center; gap: 6px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+  .btn { padding: 7px 13px; font-size: 13px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; font-family: var(--font); }
+  .btn:hover { background: var(--bg2); }
+  .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .btn-primary:hover { background: var(--blue-dark); }
+  .btn-warn { background: var(--amber-light); color: var(--amber-text); border-color: var(--amber); }
+  .btn-warn:hover { opacity: 0.85; }
+  .warn-banner { background: var(--amber-light); border: 0.5px solid var(--amber); border-radius: var(--radius); padding: 10px 14px; font-size: 12px; color: var(--amber-text); margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap: 10px; margin-bottom: 1.25rem; }
+  .metric { background: var(--bg); border-radius: var(--radius); padding: 1rem; border: 0.5px solid var(--border); }
+  .metric-label { font-size: 11px; color: var(--text2); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .metric-value { font-size: 22px; font-weight: 600; color: var(--text); }
+  .metric-value.danger { color: var(--red-text); }
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
+  .card-title { font-size: 11px; font-weight: 600; color: var(--text2); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .tabs-bar { display: flex; gap: 0; border-bottom: 0.5px solid var(--border); margin-bottom: 1.25rem; background: var(--bg); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 0 1rem; }
+  .tab { padding: 10px 18px; font-size: 13px; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; margin-bottom: -0.5px; background: none; border-top: none; border-left: none; border-right: none; font-family: var(--font); white-space: nowrap; }
+  .tab.active { color: var(--text); border-bottom-color: var(--blue); font-weight: 600; }
+  .tab:hover:not(.active) { color: var(--text); }
+  .period-tabs { display: flex; gap: 6px; margin-bottom: 1.25rem; }
+  .ptab { padding: 5px 13px; font-size: 12px; cursor: pointer; color: var(--text2); border: 0.5px solid var(--border2); border-radius: 99px; background: var(--bg); font-family: var(--font); }
+  .ptab.active { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 600; }
+  .event-tabs { display: flex; gap: 0; border-bottom: 0.5px solid var(--border); margin-bottom: 1.25rem; overflow-x: auto; }
+  .etab { padding: 8px 16px; font-size: 13px; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; margin-bottom: -0.5px; background: none; border-top: none; border-left: none; border-right: none; white-space: nowrap; font-family: var(--font); }
+  .etab.active { color: var(--text); border-bottom-color: var(--blue); font-weight: 600; }
+  .budget-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .budget-table th { text-align: right; font-weight: 600; color: var(--text2); border-bottom: 0.5px solid var(--border); padding: 8px 8px; font-size: 11px; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.03em; }
+  .budget-table th:first-child { text-align: left; }
+  .budget-table th.l1 { color: var(--blue-text); }
+  .budget-table th.l2 { color: var(--green-text); }
+  .budget-table th.l3 { color: var(--coral-text); }
+  .budget-table th.aw { color: var(--purple-text); }
+  .budget-table td { padding: 10px 8px; border-bottom: 0.5px solid var(--border); vertical-align: middle; text-align: right; white-space: nowrap; color: var(--text); }
+  .budget-table td:first-child { text-align: left; font-weight: 600; white-space: normal; }
+  .budget-table tr:last-child td { border-bottom: none; }
+  .budget-table tr.total-row td { border-top: 1px solid var(--border2); font-weight: 700; background: var(--bg2); }
+  .budget-table tr.danger-row td { background: var(--red-light); }
+  .budget-table tr.warn-row td { background: var(--amber-light); }
+  .amt-dim { color: var(--text3); }
+  .amt-over { color: var(--red-text); font-weight: 700; }
+  .amt-warn { color: var(--amber-text); }
+  .badge { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; padding: 2px 7px; border-radius: 99px; font-weight: 600; white-space: nowrap; }
+  .b-safe { background: var(--green-light); color: var(--green-text); }
+  .b-warn { background: var(--amber-light); color: var(--amber-text); }
+  .b-danger { background: var(--red-light); color: var(--red-text); }
+  .b-none { background: var(--bg2); color: var(--text3); font-size: 11px; padding: 2px 7px; border-radius: 99px; }
+  .tag { font-size: 11px; background: var(--bg2); color: var(--text2); border-radius: var(--radius); padding: 2px 7px; }
+  .tag.unmatched { background: var(--amber-light); color: var(--amber-text); }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; }
+  .filters select { font-size: 13px; padding: 7px 10px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); font-family: var(--font); }
+  table.txn { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.txn th { text-align: left; font-weight: 600; color: var(--text2); border-bottom: 0.5px solid var(--border); padding: 8px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+  table.txn td { padding: 9px 10px; border-bottom: 0.5px solid var(--border); color: var(--text); }
+  table.txn tr:last-child td { border-bottom: none; }
+  .memo-cell { font-size: 12px; color: var(--text2); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 1.25rem; }
+  @media (max-width: 600px) { .charts-row { grid-template-columns: 1fr; } }
+  .chart-wrap { position: relative; width: 100%; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; font-size: 12px; color: var(--text2); }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .leg-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+  .file-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 0.75rem; }
+  .file-item { display: flex; align-items: center; gap: 10px; background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 7px 12px; font-size: 13px; }
+  .file-name { flex: 1; color: var(--text); font-weight: 600; font-size: 12px; }
+  .file-meta { font-size: 12px; color: var(--text2); }
+  .file-remove { cursor: pointer; color: var(--text3); background: none; border: none; font-size: 16px; padding: 0 2px; line-height: 1; }
+  .upload-actions { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+  /* Review overlay */
+  .review-overlay { background: rgba(0,0,0,0.5); min-height: 500px; display: flex; align-items: flex-start; justify-content: center; padding: 2rem 1rem; border-radius: var(--radius-lg); margin-bottom: 1.25rem; }
+  .review-modal { background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--radius-lg); padding: 1.5rem; width: 100%; max-width: 500px; }
+  .review-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+  .review-header h3 { font-size: 15px; font-weight: 600; color: var(--text); }
+  .progress-strip { height: 4px; background: var(--bg2); border-radius: 99px; margin-bottom: 1.25rem; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--blue); border-radius: 99px; transition: width 0.3s; }
+  .review-card { background: var(--bg2); border-radius: var(--radius); padding: 1rem; margin-bottom: 1.25rem; }
+  .review-merchant { font-size: 15px; font-weight: 600; margin-bottom: 3px; color: var(--text); }
+  .review-amount { font-size: 22px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+  .review-memo { font-size: 13px; color: var(--text2); padding: 8px 10px; background: var(--bg); border-radius: var(--radius); border: 0.5px solid var(--border); margin-bottom: 6px; line-height: 1.5; }
+  .review-meta { font-size: 11px; color: var(--text3); }
+  .event-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1rem; }
+  .event-btn { padding: 10px; font-size: 13px; font-weight: 600; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); cursor: pointer; text-align: center; font-family: var(--font); }
+  .event-btn:hover { border-color: var(--blue); background: var(--blue-light); color: var(--blue-text); }
+  .event-btn.selected { border-color: var(--blue); background: var(--blue); color: #fff; border-width: 2px; }
+  .review-actions { display: flex; gap: 8px; align-items: center; }
+  .skip-btn { color: var(--text3); font-size: 13px; cursor: pointer; background: none; border: none; padding: 7px; font-family: var(--font); }
+  .done-state { text-align: center; padding: 2rem; }
+  .done-state i { font-size: 32px; color: var(--green); display: block; margin-bottom: 10px; }
+  .empty-upload { border: 1.5px dashed var(--border2); border-radius: var(--radius-lg); padding: 3rem 1rem; text-align: center; background: var(--bg); margin-bottom: 1.25rem; }
+  .empty-upload i { font-size: 32px; color: var(--text3); display: block; margin-bottom: 10px; }
+  .empty-upload p { font-size: 13px; color: var(--text2); margin-bottom: 1rem; line-height: 1.6; }
+  .tab-content { background: var(--bg); border: 0.5px solid var(--border); border-radius: 0 0 var(--radius-lg) var(--radius-lg); padding: 1.25rem; margin-bottom: 1.25rem; border-top: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="top-bar">
+    <div>
+      <div class="page-title">Event team budget</div>
+      <div class="page-sub">Acquisition.com · Events team</div>
+    </div>
+    <div class="top-right">
+      <div class="status-pill"><span class="dot"></span><span id="stxt">No data uploaded</span></div>
+      <button class="btn btn-warn" id="review-btn" onclick="startReview()" style="display:none;"><i class="ti ti-edit"></i> Review unmatched</button>
+      <button class="btn btn-primary" onclick="document.getElementById('fi').click()"><i class="ti ti-upload"></i> Upload Ramp CSVs</button>
+      <input type="file" id="fi" accept=".csv" multiple style="display:none" onchange="handleFiles(event)">
+    </div>
+  </div>
+
+  <div id="file-list" class="file-list"></div>
+  <div id="upload-actions" class="upload-actions" style="display:none;">
+    <button class="btn btn-primary" onclick="processFiles()"><i class="ti ti-chart-bar"></i> Load into dashboard</button>
+    <button class="btn" onclick="document.getElementById('fi').click()"><i class="ti ti-plus"></i> Add more</button>
+    <span id="fsummary" style="font-size:12px;color:var(--text2);"></span>
+  </div>
+
+  <div id="review-overlay" class="review-overlay" style="display:none;">
+    <div class="review-modal">
+      <div class="review-header">
+        <h3><i class="ti ti-edit" style="font-size:15px;vertical-align:-2px;margin-right:6px;"></i>Review unmatched transactions</h3>
+        <span style="font-size:12px;color:var(--text2);" id="review-counter"></span>
+      </div>
+      <div class="progress-strip"><div class="progress-fill" id="review-progress"></div></div>
+      <div id="review-content"></div>
+    </div>
+  </div>
+
+  <div id="warn-banner" class="warn-banner" style="display:none;">
+    <i class="ti ti-alert-circle" style="font-size:16px;"></i>
+    <span id="warn-text"></span>
+    <button class="btn btn-warn" onclick="startReview()" style="margin-left:auto;padding:5px 11px;font-size:12px;"><i class="ti ti-edit"></i> Review now</button>
+  </div>
+
+  <div id="empty-state" class="empty-upload">
+    <i class="ti ti-credit-card"></i>
+    <p>Upload your Ramp card CSV exports to get started.<br>Select all cards at once — they'll be merged automatically.<br>The dashboard reads the Memo field to sort into L1, L2, L3, and All Workshops.</p>
+    <button class="btn btn-primary" style="margin:0 auto;" onclick="document.getElementById('fi').click()"><i class="ti ti-upload"></i> Choose CSV files</button>
+  </div>
+
+  <div id="dash-body" style="display:none;">
+    <div class="metrics" id="metrics-row"></div>
+
+    <div class="tabs-bar">
+      <button class="tab active" onclick="switchTab('budget')">Budget tracker</button>
+      <button class="tab" onclick="switchTab('txns')">Transactions</button>
+      <button class="tab" onclick="switchTab('charts')">Charts</button>
+    </div>
+
+    <div id="tab-budget" class="tab-content">
+      <div class="period-tabs">
+        <button class="ptab active" onclick="setPeriod('monthly')">Monthly</button>
+        <button class="ptab" onclick="setPeriod('quarterly')">Quarterly</button>
+        <button class="ptab" onclick="setPeriod('yearly')">Yearly</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="budget-table">
+          <thead>
+            <tr>
+              <th style="text-align:left;min-width:130px;">Category</th>
+              <th class="l1">L1 budget</th>
+              <th class="l2">L2 budget</th>
+              <th class="l3">L3 budget</th>
+              <th class="aw">All Workshops</th>
+              <th>Monthly total</th>
+              <th>Actual spend</th>
+              <th>Remaining</th>
+              <th style="min-width:110px;">Status</th>
+            </tr>
+          </thead>
+          <tbody id="budget-tbody"></tbody>
+          <tfoot id="budget-tfoot"></tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-txns" class="tab-content" style="display:none;">
+      <div class="event-tabs">
+        <button class="etab active" onclick="setEvent('all')">All transactions</button>
+        <button class="etab" onclick="setEvent('L1')">L1</button>
+        <button class="etab" onclick="setEvent('L2')">L2</button>
+        <button class="etab" onclick="setEvent('L3')">L3</button>
+        <button class="etab" onclick="setEvent('All Workshops')">All Workshops</button>
+        <button class="etab" id="unmatched-tab" onclick="setEvent('Unmatched')" style="display:none;"></button>
+      </div>
+      <div class="filters">
+        <select id="f-cat" onchange="renderTxns()"><option value="all">All categories</option></select>
+        <select id="f-holder" onchange="renderTxns()"><option value="all">All cardholders</option></select>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="txn">
+          <thead><tr><th>Date</th><th>Merchant</th><th>Category</th><th>Memo</th><th>Cardholder</th><th style="text-align:right">Amount</th><th>Event</th></tr></thead>
+          <tbody id="txn-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-charts" class="tab-content" style="display:none;">
+      <div class="charts-row">
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title">Spend by category</div>
+          <div class="legend" id="leg-cat"></div>
+          <div class="chart-wrap" style="height:200px;"><canvas id="chartCat" role="img" aria-label="Spend by category"></canvas></div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title">Spend by event</div>
+          <div class="legend" id="leg-ev"></div>
+          <div class="chart-wrap" style="height:200px;"><canvas id="chartEv" role="img" aria-label="Spend by event"></canvas></div>
+        </div>
+      </div>
+      <br>
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-title">Monthly budget vs actual</div>
+        <div class="chart-wrap" style="height:200px;"><canvas id="chartBvS" role="img" aria-label="Budget vs actual"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+const COLORS=['#378ADD','#1D9E75','#D85A30','#7F77DD','#BA7517','#D4537E','#639922','#E24B4A','#5DCAA5','#F0997B','#97C459','#AFA9EC'];
+const CATS=['Catering','Beverages','Swag','L3 Dinner','Amazon','Linen Rental','Transportation','Instacart','Spotify','Internal Team Expenses','Event Materials','Expo Pass'];
+const BUDGETS={
+  monthly:{
+    'L1':{'Catering':106000,'Beverages':1000,'Swag':25000},
+    'L2':{'Catering':66000,'Beverages':6000,'Swag':7000},
+    'L3':{'Catering':13000,'Swag':2500,'L3 Dinner':7000,'Transportation':1500},
+    'All Workshops':{'Catering':190000,'Beverages':42000,'Swag':32000,'L3 Dinner':7000,'Amazon':2500,'Linen Rental':6000,'Transportation':4500,'Instacart':2000,'Spotify':20,'Internal Team Expenses':1800}
+  },
+  quarterly:{
+    'L1':{'Swag':95000},'L2':{},'L3':{'L3 Dinner':30000},'All Workshops':{'Amazon':6000}
+  },
+  yearly:{
+    'L1':{},'L2':{},'L3':{},'All Workshops':{'Event Materials':12000,'Expo Pass':12000}
+  }
+};
+const MERCHANT_CAT={'amazon':'Amazon','instacart':'Instacart','costco':'Beverages','spotify':'Spotify','party rentals':'Linen Rental','just candy':'Swag','redline print group':'Event Materials','kassi beach house':'Internal Team Expenses'};
+
+function detectEvent(memo){
+  if(!memo||memo==='No memo') return null;
+  const m=memo.toLowerCase();
+  if(/all\s*workshop/i.test(m)||/all\s*event/i.test(m)||/for\s+all\b/i.test(m)) return 'All Workshops';
+  const L1=/\bl1\b/i.test(m),L2=/\bl2\b/i.test(m),L3=/\bl3\b/i.test(m);
+  if((L1&&L2)||(L1&&L3)||(L2&&L3)) return 'All Workshops';
+  if(L1) return 'L1'; if(L2) return 'L2'; if(L3) return 'L3';
+  if(/internal\s*team/i.test(m)||/team\s*bond/i.test(m)) return 'All Workshops';
+  if(/\ball\b/i.test(m)) return 'All Workshops';
+  return null;
+}
+function detectCategory(merchant,rampCat){
+  const ml=(merchant||'').toLowerCase();
+  for(const [k,v] of Object.entries(MERCHANT_CAT)) if(ml.includes(k)) return v;
+  const rl=(rampCat||'').toLowerCase();
+  if(rl.includes('restaurant')) return 'Catering';
+  if(rl.includes('grocery')||rl.includes('supermarket')) return 'Instacart';
+  if(rl.includes('office')) return 'Event Materials';
+  return 'Amazon';
+}
+
+let allTxns=[],activePeriod='monthly',activeEvent='all',activeTab='budget',pendingFiles=[],reviewQueue=[],selectedEv=null;
+let chartCat,chartEv,chartBvS,nextId=0;
+
+function fmt(n){return '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtB(n){return n?'$'+Math.round(n).toLocaleString():'—';}
+function getBudget(ev,cat){return((BUDGETS[activePeriod]||{})[ev]||{})[cat]||0;}
+function getMonthlyTotal(cat){return['L1','L2','L3','All Workshops'].reduce((s,ev)=>s+getBudget(ev,cat),0);}
+function getTotalSpend(cat){return allTxns.filter(r=>r.category===cat).reduce((s,r)=>s+r.amount,0);}
+
+function setPeriod(p){
+  activePeriod=p;
+  document.querySelectorAll('.ptab').forEach((t,i)=>t.classList.toggle('active',['monthly','quarterly','yearly'][i]===p));
+  renderBudgetTable(); renderMetrics();
+}
+function switchTab(tab){
+  activeTab=tab;
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['budget','txns','charts'][i]===tab));
+  ['budget','txns','charts'].forEach(n=>document.getElementById('tab-'+n).style.display=n===tab?'block':'none');
+  if(tab==='charts') renderCharts();
+  if(tab==='txns') renderTxns();
+}
+function setEvent(ev){
+  activeEvent=ev;
+  document.querySelectorAll('.etab').forEach(t=>{
+    const isU=t.id==='unmatched-tab';
+    const label=t.textContent.replace(/⚠ /,'').replace(/ \(\d+\)/,'');
+    t.classList.toggle('active',isU?ev==='Unmatched':label===ev||(ev==='all'&&label==='All transactions'));
+  });
+  renderTxns();
+}
+
+function render(){renderMetrics();renderBudgetTable();renderTxns();updateUI();}
+
+function renderMetrics(){
+  const total=allTxns.reduce((s,r)=>s+r.amount,0);
+  const budgetTotal=CATS.reduce((s,c)=>s+getMonthlyTotal(c),0);
+  const remaining=budgetTotal-total;
+  const overCats=CATS.filter(c=>{const b=getMonthlyTotal(c);return b&&getTotalSpend(c)>b;}).length;
+  const unmatched=allTxns.filter(r=>r.event==='Unmatched').length;
+  document.getElementById('metrics-row').innerHTML=`
+    <div class="metric"><div class="metric-label">Monthly budget</div><div class="metric-value">${fmtB(budgetTotal)}</div></div>
+    <div class="metric"><div class="metric-label">Actual spend</div><div class="metric-value">${fmt(total)}</div></div>
+    <div class="metric"><div class="metric-label">Remaining</div><div class="metric-value ${remaining<0?'danger':''}">${fmtB(Math.abs(remaining))}</div></div>
+    <div class="metric"><div class="metric-label">Transactions</div><div class="metric-value">${allTxns.length}</div></div>
+    <div class="metric"><div class="metric-label">Over budget</div><div class="metric-value ${overCats>0?'danger':''}">${overCats}</div></div>
+    <div class="metric"><div class="metric-label">Unmatched</div><div class="metric-value ${unmatched>0?'danger':''}">${unmatched}</div></div>
+  `;
+}
+
+function renderBudgetTable(){
+  const tbody=document.getElementById('budget-tbody');
+  const tfoot=document.getElementById('budget-tfoot');
+  let tL1=0,tL2=0,tL3=0,tAW=0,tMon=0,tSpent=0;
+  tbody.innerHTML=CATS.map((cat,i)=>{
+    const bL1=getBudget('L1',cat),bL2=getBudget('L2',cat),bL3=getBudget('L3',cat),bAW=getBudget('All Workshops',cat);
+    const monthly=bL1+bL2+bL3+bAW;
+    const spent=getTotalSpend(cat);
+    if(!monthly&&!spent) return '';
+    tL1+=bL1;tL2+=bL2;tL3+=bL3;tAW+=bAW;tMon+=monthly;tSpent+=spent;
+    const rem=monthly-spent;
+    const pct=monthly?Math.min(100,Math.round(spent/monthly*100)):null;
+    const isOver=monthly&&spent>monthly,isWarn=monthly&&!isOver&&pct>=80;
+    const badge=!monthly?`<span class="b-none">No budget</span>`
+      :isOver?`<span class="badge b-danger"><i class="ti ti-alert-triangle" style="font-size:10px;"></i> Over</span>`
+      :isWarn?`<span class="badge b-warn"><i class="ti ti-alert-circle" style="font-size:10px;"></i> Near limit</span>`
+      :`<span class="badge b-safe"><i class="ti ti-check" style="font-size:10px;"></i> On track</span>`;
+    return `<tr class="${isOver?'danger-row':isWarn?'warn-row':''}">
+      <td>${cat}</td>
+      <td class="${!bL1?'amt-dim':''}">${fmtB(bL1)}</td>
+      <td class="${!bL2?'amt-dim':''}">${fmtB(bL2)}</td>
+      <td class="${!bL3?'amt-dim':''}">${fmtB(bL3)}</td>
+      <td class="${!bAW?'amt-dim':''}">${fmtB(bAW)}</td>
+      <td style="font-weight:700;">${monthly?fmtB(monthly):'—'}</td>
+      <td class="${isOver?'amt-over':''}">${fmt(spent)}</td>
+      <td class="${isOver?'amt-over':isWarn?'amt-warn':''}">${monthly?(isOver?'-':'')+fmtB(Math.abs(rem)):'—'}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+  const totRem=tMon-tSpent;
+  tfoot.innerHTML=`<tr class="total-row"><td>Total</td><td>${fmtB(tL1)}</td><td>${fmtB(tL2)}</td><td>${fmtB(tL3)}</td><td>${fmtB(tAW)}</td><td>${fmtB(tMon)}</td><td class="${totRem<0?'amt-over':''}">${fmt(tSpent)}</td><td class="${totRem<0?'amt-over':''}">${(totRem<0?'-':'')+fmtB(Math.abs(totRem))}</td><td></td></tr>`;
+}
+
+function populateFilters(){
+  const cats=[...new Set(allTxns.map(r=>r.category))].sort();
+  const holders=[...new Set(allTxns.map(r=>r.holder))].sort();
+  document.getElementById('f-cat').innerHTML='<option value="all">All categories</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  document.getElementById('f-holder').innerHTML='<option value="all">All cardholders</option>'+holders.map(h=>`<option value="${h}">${h}</option>`).join('');
+}
+
+function renderTxns(){
+  const ca=document.getElementById('f-cat').value;
+  const ho=document.getElementById('f-holder').value;
+  const txns=allTxns.filter(r=>(activeEvent==='all'||r.event===activeEvent)&&(ca==='all'||r.category===ca)&&(ho==='all'||r.holder===ho));
+  const tbody=document.getElementById('txn-tbody');
+  if(!txns.length){tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text3);">No transactions found.</td></tr>`;return;}
+  tbody.innerHTML=[...txns].sort((a,b)=>b.date.localeCompare(a.date)).map(r=>`<tr>
+    <td style="color:var(--text2);white-space:nowrap;">${r.date}</td>
+    <td style="font-weight:600;">${r.merchant}</td>
+    <td><span class="tag">${r.category}</span></td>
+    <td class="memo-cell" title="${r.memo}">${r.memo||'—'}</td>
+    <td style="color:var(--text2);font-size:12px;">${r.holder.split(' ').slice(0,2).join(' ')}</td>
+    <td style="text-align:right;font-weight:600;">${fmt(r.amount)}</td>
+    <td><span class="tag ${r.event==='Unmatched'?'unmatched':''}">${r.event}${r.manuallyAssigned?' ✓':''}</span></td>
+  </tr>`).join('');
+}
+
+function groupBy(arr,key){return arr.reduce((a,r)=>{a[r[key]]=(a[r[key]]||0)+r.amount;return a;},{});}
+
+function renderCharts(){
+  const bycat=groupBy(allTxns,'category');
+  const cats=Object.keys(bycat);
+  const catColors=cats.map((_,i)=>COLORS[i%COLORS.length]);
+  document.getElementById('leg-cat').innerHTML=cats.map((c,i)=>`<span><span class="leg-dot" style="background:${catColors[i]}"></span>${c}</span>`).join('');
+  if(chartCat)chartCat.destroy();
+  chartCat=new Chart(document.getElementById('chartCat'),{type:'doughnut',data:{labels:cats,datasets:[{data:Object.values(bycat),backgroundColor:catColors,borderWidth:2,borderColor:'transparent'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${fmt(ctx.parsed)}`}}},cutout:'60%'}});
+  const evOrder=['L1','L2','L3','All Workshops','Unmatched'];
+  const byev=groupBy(allTxns,'event');
+  const evLabels=evOrder.filter(e=>byev[e]);
+  const evColors=['#378ADD','#1D9E75','#D85A30','#7F77DD','#888780'];
+  document.getElementById('leg-ev').innerHTML=evLabels.map((e,i)=>`<span><span class="leg-dot" style="background:${evColors[i]}"></span>${e}</span>`).join('');
+  if(chartEv)chartEv.destroy();
+  chartEv=new Chart(document.getElementById('chartEv'),{type:'doughnut',data:{labels:evLabels,datasets:[{data:evLabels.map(e=>byev[e]||0),backgroundColor:evColors,borderWidth:2,borderColor:'transparent'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${fmt(ctx.parsed)}`}}},cutout:'60%'}});
+  const bvsCats=CATS.filter(c=>getMonthlyTotal(c)>0);
+  const bvsS=bvsCats.map(c=>getTotalSpend(c));
+  const bvsB=bvsCats.map(c=>getMonthlyTotal(c));
+  if(chartBvS)chartBvS.destroy();
+  chartBvS=new Chart(document.getElementById('chartBvS'),{type:'bar',data:{labels:bvsCats,datasets:[{label:'Budget',data:bvsB,backgroundColor:'rgba(55,138,221,0.2)',borderColor:'#378ADD',borderWidth:1.5,borderRadius:4},{label:'Actual',data:bvsS,backgroundColor:bvsS.map((s,i)=>s>bvsB[i]?'rgba(226,75,74,0.7)':'rgba(29,158,117,0.7)'),borderWidth:0,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`}}},scales:{x:{grid:{display:false},ticks:{color:'#888780',font:{size:10},maxRotation:35,autoSkip:false}},y:{grid:{color:'rgba(136,135,128,0.15)'},ticks:{color:'#888780',font:{size:11},callback:v=>'$'+Math.round(v/1000)+'k'}}}}});
+}
+
+function updateUI(){
+  const unmatched=allTxns.filter(r=>r.event==='Unmatched');
+  const ut=document.getElementById('unmatched-tab');
+  const wb=document.getElementById('warn-banner');
+  const rb=document.getElementById('review-btn');
+  if(unmatched.length){
+    ut.style.display='';ut.textContent=`⚠ Unmatched (${unmatched.length})`;
+    wb.style.display='flex';document.getElementById('warn-text').textContent=`${unmatched.length} transaction${unmatched.length>1?'s':''} couldn't be auto-matched to an event.`;
+    rb.style.display='inline-flex';
+  } else { ut.style.display='none';wb.style.display='none';rb.style.display='none'; }
+  const total=allTxns.length;
+  const cards=[...new Set(allTxns.map(r=>r.holder))].length;
+  document.getElementById('stxt').textContent=`${total} transactions · ${cards} cardholder${cards!==1?'s':''}`;
+  const isEmpty=allTxns.length===0;
+  document.getElementById('empty-state').style.display=isEmpty?'block':'none';
+  document.getElementById('dash-body').style.display=isEmpty?'none':'block';
+}
+
+function startReview(){
+  reviewQueue=allTxns.filter(r=>r.event==='Unmatched');
+  if(!reviewQueue.length) return;
+  selectedEv=null;
+  document.getElementById('review-overlay').style.display='flex';
+  renderReviewCard();
+}
+function renderReviewCard(){
+  const remaining=allTxns.filter(r=>r.event==='Unmatched').length;
+  const done=reviewQueue.length-remaining;
+  document.getElementById('review-counter').textContent=`${done} of ${reviewQueue.length} reviewed`;
+  document.getElementById('review-progress').style.width=`${reviewQueue.length?Math.round(done/reviewQueue.length*100):100}%`;
+  const unmatched=allTxns.filter(r=>r.event==='Unmatched');
+  if(!unmatched.length){
+    document.getElementById('review-content').innerHTML=`<div class="done-state"><i class="ti ti-circle-check"></i><h3>All done!</h3><p style="color:var(--text2);font-size:13px;margin-top:6px;">Every transaction has been assigned.</p><button class="btn btn-primary" style="margin:1rem auto 0;" onclick="closeReview()">Back to dashboard</button></div>`;
+    return;
+  }
+  const txn=unmatched[0]; selectedEv=null;
+  document.getElementById('review-content').innerHTML=`
+    <div class="review-card">
+      <div class="review-merchant">${txn.merchant}</div>
+      <div class="review-amount">${fmt(txn.amount)}</div>
+      <div class="review-memo">${txn.memo||'<em style="color:var(--text3)">No memo provided</em>'}</div>
+      <div class="review-meta">${txn.date} · ${txn.holder.split(' ').slice(0,2).join(' ')} · ${txn.category}</div>
+    </div>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em;">Which event does this belong to?</div>
+    <div class="event-btns">
+      <button class="event-btn" onclick="selectEv(this,'L1',${txn.id})">L1</button>
+      <button class="event-btn" onclick="selectEv(this,'L2',${txn.id})">L2</button>
+      <button class="event-btn" onclick="selectEv(this,'L3',${txn.id})">L3</button>
+      <button class="event-btn" onclick="selectEv(this,'All Workshops',${txn.id})">All Workshops</button>
+    </div>
+    <div class="review-actions">
+      <button class="btn btn-primary" id="assign-btn" onclick="assignEv(${txn.id})" style="opacity:0.4;pointer-events:none;"><i class="ti ti-check"></i> Assign</button>
+      <button class="skip-btn" onclick="skipTxn(${txn.id})">Skip for now</button>
+    </div>`;
+}
+function selectEv(btn,ev,id){
+  document.querySelectorAll('.event-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected'); selectedEv=ev;
+  const ab=document.getElementById('assign-btn');
+  ab.style.opacity='1'; ab.style.pointerEvents='auto';
+}
+function assignEv(id){
+  if(!selectedEv) return;
+  const txn=allTxns.find(r=>r.id===id);
+  if(txn){txn.event=selectedEv;txn.manuallyAssigned=true;}
+  selectedEv=null;
+  renderReviewCard(); updateUI(); renderBudgetTable(); renderMetrics();
+}
+function skipTxn(id){
+  const idx=allTxns.findIndex(r=>r.id===id&&r.event==='Unmatched');
+  if(idx>=0){const t=allTxns.splice(idx,1)[0];allTxns.push(t);}
+  renderReviewCard();
+}
+function closeReview(){
+  document.getElementById('review-overlay').style.display='none';
+  render();
+}
+
+function handleFiles(e){
+  pendingFiles=Array.from(e.target.files);
+  document.getElementById('file-list').innerHTML=pendingFiles.map((f,i)=>`<div class="file-item"><i class="ti ti-file-spreadsheet" style="font-size:15px;color:#378ADD;"></i><span class="file-name">${f.name}</span><span class="file-meta" id="fc-${i}">Pending</span><button class="file-remove" onclick="removePending(${i})"><i class="ti ti-x"></i></button></div>`).join('');
+  document.getElementById('upload-actions').style.display='flex';
+  document.getElementById('fsummary').textContent=`${pendingFiles.length} file${pendingFiles.length>1?'s':''} ready`;
+  e.target.value='';
+}
+function removePending(i){pendingFiles.splice(i,1);handleFiles({target:{files:pendingFiles,value:''}});}
+
+async function processFiles(){
+  const results=await Promise.all(pendingFiles.map(f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res({name:f.name,text:e.target.result});r.onerror=()=>rej();r.readAsText(f);})));
+  results.forEach(({name,text})=>{
+    const rows=text.trim().split('\n');
+    const headers=rows[0].split(',').map(h=>h.replace(/"/g,'').trim().toLowerCase());
+    const col=n=>headers.indexOf(n);
+    rows.slice(1).filter(r=>r.trim()).forEach(row=>{
+      const cols=row.split(',').map(c=>c.replace(/"/g,'').trim());
+      const memo=cols[col('memo')]||'';
+      const merchant=cols[col('merchant')]||'';
+      const amount=Math.abs(parseFloat((cols[col('amount')]||'0').replace(/[$, ]/g,''))||0);
+      if(!amount) return;
+      allTxns.push({id:nextId++,date:cols[col('date')]||'',merchant,memo:memo==='No memo'?'':memo,category:detectCategory(merchant,cols[col('ramp category')]||''),event:detectEvent(memo)||'Unmatched',holder:cols[col('user')]||name,amount});
+    });
+    const el=document.getElementById('fc-'+pendingFiles.findIndex(f=>f.name===name));
+    if(el) el.textContent='Loaded';
+  });
+  pendingFiles=[];
+  document.getElementById('upload-actions').style.display='none';
+  populateFilters(); render();
+  const unmatched=allTxns.filter(r=>r.event==='Unmatched');
+  if(unmatched.length) setTimeout(()=>startReview(),500);
+}
+
+updateUI();
+</script>
+</body>
+</html>
