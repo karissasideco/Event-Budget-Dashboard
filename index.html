@@ -95,7 +95,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .tab{padding:12px 18px;font-size:10px;font-weight:600;font-family:var(--font);cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-0.5px;background:none;border-top:none;border-left:none;border-right:none;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;}
 .tab.active{color:var(--indigo);border-bottom-color:var(--indigo);}
 .tab:hover:not(.active){color:var(--text);}
-.tab-content{background:var(--bg-card);border:0.5px solid var(--border);border-radius:0 0 var(--radius-lg) var(--radius-lg);padding:1.25rem;margin-bottom:1.25rem;border-top:none;}
+.tab-content{background:var(--bg-card);border:0.5px solid var(--border);border-radius:0 0 var(--radius-lg) var(--radius-lg);padding:1.25rem;margin-bottom:1.25rem;border-top:none;contain:layout style;}
 
 .event-tabs{display:flex;gap:0;border-bottom:0.5px solid var(--border);margin-bottom:1.25rem;overflow-x:auto;}
 .etab{padding:8px 16px;font-size:10px;font-weight:600;font-family:var(--font);cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-0.5px;background:none;border-top:none;border-left:none;border-right:none;white-space:nowrap;text-transform:uppercase;letter-spacing:0.05em;}
@@ -437,8 +437,11 @@ function renderDrillDown(q){
 function switchTab(tab){
   activeTab=tab;
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['budget','txns','charts'][i]===tab));
-  ['budget','txns','charts'].forEach(n=>document.getElementById('tab-'+n).style.display=n===tab?'block':'none');
-  if(tab==='charts') renderCharts();
+  ['budget','txns','charts'].forEach(n=>{
+    const el=document.getElementById('tab-'+n);
+    el.style.display=n===tab?'block':'none';
+  });
+  if(tab==='charts') requestAnimationFrame(()=>renderCharts());
   if(tab==='txns') renderTxns();
 }
 
@@ -535,27 +538,27 @@ function renderTxns(){
 
 function groupBy(arr,key){return arr.reduce((a,r)=>{a[r[key]]=(a[r[key]]||0)+r.amount;return a;},{});}
 
-function renderCharts(){
+function renderCharts(force){
   const txns=txnsForPeriod();
   if(!txns.length) return;
   const bycat=groupBy(txns,'category');
   const cats=Object.keys(bycat);
   const catColors=cats.map((_,i)=>COLORS[i%COLORS.length]);
   document.getElementById('leg-cat').innerHTML=cats.map((c,i)=>`<span><span class="leg-dot" style="background:${catColors[i]}"></span>${c}</span>`).join('');
-  if(chartCat)chartCat.destroy();
-  chartCat=new Chart(document.getElementById('chartCat'),{type:'doughnut',data:{labels:cats,datasets:[{data:Object.values(bycat),backgroundColor:catColors,borderWidth:2,borderColor:'transparent'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${fmt(ctx.parsed)}`}}},cutout:'62%'}});
+  if(chartCat&&!force){chartCat.data.labels=cats;chartCat.data.datasets[0].data=Object.values(bycat);chartCat.data.datasets[0].backgroundColor=catColors;chartCat.update('none');}
+  else{if(chartCat)chartCat.destroy();chartCat=new Chart(document.getElementById('chartCat'),{type:'doughnut',data:{labels:cats,datasets:[{data:Object.values(bycat),backgroundColor:catColors,borderWidth:2,borderColor:'transparent'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${fmt(ctx.parsed)}`}}},cutout:'62%'}});}
   const evOrder=['L1','L2','L3','All Workshops','Unmatched'];
   const byev=groupBy(txns,'event');
   const evLabels=evOrder.filter(e=>byev[e]);
   const evColors=['#6f00ff','#1D9E75','#D85A30','#a08bec','#888780'];
   document.getElementById('leg-ev').innerHTML=evLabels.map((e,i)=>`<span><span class="leg-dot" style="background:${evColors[i]}"></span>${e}</span>`).join('');
-  if(chartEv)chartEv.destroy();
-  chartEv=new Chart(document.getElementById('chartEv'),{type:'doughnut',data:{labels:evLabels,datasets:[{data:evLabels.map(e=>byev[e]||0),backgroundColor:evColors,borderWidth:2,borderColor:'transparent'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${fmt(ctx.parsed)}`}}},cutout:'62%'}});
+  if(chartEv&&!force){chartEv.data.labels=evLabels;chartEv.data.datasets[0].data=evLabels.map(e=>byev[e]||0);chartEv.data.datasets[0].backgroundColor=evColors;chartEv.update('none');}
+  else{if(chartEv)chartEv.destroy();chartEv=new Chart(document.getElementById('chartEv'),{type:'doughnut',data:{labels:evLabels,datasets:[{data:evLabels.map(e=>byev[e]||0),backgroundColor:evColors,borderWidth:2,borderColor:'transparent'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${fmt(ctx.parsed)}`}}},cutout:'62%'}});}
   const bvsCats=CATS.filter(c=>getMonthlyBudget(c)>0);
   const bvsS=bvsCats.map(c=>txns.filter(r=>r.category===c).reduce((s,r)=>s+r.amount,0));
   const bvsB=bvsCats.map(c=>getMonthlyBudget(c));
-  if(chartBvS)chartBvS.destroy();
-  chartBvS=new Chart(document.getElementById('chartBvS'),{type:'bar',data:{labels:bvsCats,datasets:[{label:'Budget',data:bvsB,backgroundColor:'rgba(111,0,255,0.1)',borderColor:'#6f00ff',borderWidth:1.5,borderRadius:4},{label:'Actual',data:bvsS,backgroundColor:bvsS.map((s,i)=>s>bvsB[i]?'rgba(226,75,74,0.75)':'rgba(111,0,255,0.55)'),borderWidth:0,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`}}},scales:{x:{grid:{display:false},ticks:{color:'#9090a8',font:{size:10,family:'Poppins'},maxRotation:35,autoSkip:false}},y:{grid:{color:'rgba(19,22,40,0.06)'},ticks:{color:'#9090a8',font:{size:10,family:'Poppins'},callback:v=>'$'+Math.round(v/1000)+'k'}}}}});
+  if(chartBvS&&!force){chartBvS.data.datasets[0].data=bvsB;chartBvS.data.datasets[1].data=bvsS;chartBvS.data.datasets[1].backgroundColor=bvsS.map((s,i)=>s>bvsB[i]?'rgba(226,75,74,0.75)':'rgba(111,0,255,0.55)');chartBvS.update('none');}
+  else{if(chartBvS)chartBvS.destroy();chartBvS=new Chart(document.getElementById('chartBvS'),{type:'bar',data:{labels:bvsCats,datasets:[{label:'Budget',data:bvsB,backgroundColor:'rgba(111,0,255,0.1)',borderColor:'#6f00ff',borderWidth:1.5,borderRadius:4},{label:'Actual',data:bvsS,backgroundColor:bvsS.map((s,i)=>s>bvsB[i]?'rgba(226,75,74,0.75)':'rgba(111,0,255,0.55)'),borderWidth:0,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`}}},scales:{x:{grid:{display:false},ticks:{color:'#9090a8',font:{size:10,family:'Poppins'},maxRotation:35,autoSkip:false}},y:{grid:{color:'rgba(19,22,40,0.06)'},ticks:{color:'#9090a8',font:{size:10,family:'Poppins'},callback:v=>'$'+Math.round(v/1000)+'k'}}}}});}
 }
 
 function updateUI(){
