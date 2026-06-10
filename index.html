@@ -300,8 +300,13 @@ const CATS=['Catering','Beverages','Swag','L3 Dinner','Amazon','Linen Rental','T
 const MONTHLY_BUDGETS={
   'L1':{'Catering':106000,'Beverages':1000,'Swag':25000},
   'L2':{'Catering':66000,'Beverages':6000,'Swag':7000},
-  'L3':{'Catering':13000,'Swag':2500,'L3 Dinner':7000,'Transportation':1500},
-  'All Workshops':{'Beverages':42000,'Swag':32000,'L3 Dinner':7000,'Amazon':2500,'Linen Rental':6000,'Transportation':4500,'Instacart':2000,'Spotify':20,'Internal Team Expenses':1800,'Event Materials':15000}
+  'L3':{'Swag':2500,'L3 Dinner':7000,'Transportation':1500},
+  'All Workshops':{'Beverages':42000,'Amazon':2500,'Linen Rental':6000,'Instacart':6000,'Spotify':20,'Internal Team Expenses':1800,'Event Materials':10000}
+};
+const MONTHLY_BUDGET_OVERRIDE={
+  'Catering':190000,'Beverages':50000,'Swag':32000,'L3 Dinner':7000,
+  'Amazon':2500,'Linen Rental':6000,'Transportation':1500,'Instacart':6000,
+  'Spotify':20,'Internal Team Expenses':1800,'Event Materials':10000
 };
 const QUARTERS={
   q1:{name:'Q1',label:'Jan – Mar',months:['01','02','03']},
@@ -374,7 +379,7 @@ let chartCat,chartEv,chartBvS;
 
 function fmt(n){return '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function fmtB(n){return n?'$'+Math.round(n).toLocaleString():'—';}
-function getMonthlyBudget(cat){return['L1','L2','L3','All Workshops'].reduce((s,ev)=>s+((MONTHLY_BUDGETS[ev]||{})[cat]||0),0);}
+function getMonthlyBudget(cat){return MONTHLY_BUDGET_OVERRIDE[cat]||['L1','L2','L3','All Workshops'].reduce((s,ev)=>s+((MONTHLY_BUDGETS[ev]||{})[cat]||0),0);}
 
 async function loadData(){
   document.getElementById('loading-screen').style.display='block';
@@ -391,6 +396,8 @@ async function loadData(){
     const col = n => headers.indexOf(n);
     const iDate=col('date'),iUser=col('user'),iAmt=col('amount'),iMerchant=col('merchant'),iMemo=col('memo'),iRamp=col('ramp category');
     nextId=0; allTxns=[];
+    const iCatOverride=col('category override');
+    const iEvOverride=col('event override');
     rows.slice(1).filter(r=>r.trim()).forEach(row=>{
       const cols=row.split(',').map(c=>c.replace(/"/g,'').trim());
       const amount=parseAmount(cols[iAmt]);
@@ -398,15 +405,18 @@ async function loadData(){
       const merchant=cols[iMerchant]||'';
       const memo=cols[iMemo]||'';
       const rampCat=cols[iRamp]||'';
-      const ev=detectEvent(memo,rampCat);
+      const catOverride=iCatOverride>=0?cols[iCatOverride]:'';
+      const evOverride=iEvOverride>=0?cols[iEvOverride]:'';
+      const ev=evOverride||detectEvent(memo,rampCat);
       allTxns.push({
         id:nextId++,
         date:parseDate(cols[iDate]||''),
         merchant,memo,
-        category:detectCategory(merchant,rampCat,memo),
+        category:catOverride||detectCategory(merchant,rampCat,memo),
         event:ev||'Unmatched',
         holder:cols[iUser]||'',
-        amount
+        amount,
+        overridden:!!(catOverride||evOverride)
       });
     });
     document.getElementById('loading-screen').style.display='none';
