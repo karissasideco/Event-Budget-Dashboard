@@ -611,10 +611,20 @@ function renderBudgetTable(){
       :`<span class="badge b-safe"><i class="ti ti-check" style="font-size:9px;"></i> On track</span>`;
 
     if(isQuarter){
-      const monthCells = monthSpends.map(v=>
-        `<td style="color:var(--indigo);font-weight:600;">${v>0?fmt(v):'—'}</td>`
-      ).join('');
-      return `<tr class="${isOver?'danger-row':isWarn?'warn-row':''}">
+      const quarterlyBudget = monthly * 3;
+      const monthCells = monthSpends.map(v=>{
+        if(!v) return `<td style="color:var(--text3);font-weight:600;">—</td>`;
+        const mpct = monthly ? v/monthly*100 : null;
+        const mOver = monthly && v > monthly;
+        const mWarn = monthly && !mOver && mpct >= 80;
+        const bg = !monthly ? '' : mOver ? 'background:var(--red-light);' : mWarn ? 'background:var(--amber-light);' : 'background:var(--green-light);';
+        const color = !monthly ? 'color:var(--indigo);' : mOver ? 'color:var(--red-text);' : mWarn ? 'color:var(--amber-text);' : 'color:var(--green-text);';
+        return `<td style="${bg}${color}font-weight:700;border-radius:4px;">${fmt(v)}</td>`;
+      }).join('');
+      const qOver = quarterlyBudget && spent > quarterlyBudget;
+      const qWarn = quarterlyBudget && !qOver && spent/quarterlyBudget*100 >= 80;
+      const qTotalColor = qOver ? 'color:var(--red-text);' : qWarn ? 'color:var(--amber-text);' : 'color:var(--green-text);';
+      return `<tr>
         <td>${cat}</td>
         <td class="${!bL1?'amt-dim':''}">${fmtB(bL1)}</td>
         <td class="${!bL2?'amt-dim':''}">${fmtB(bL2)}</td>
@@ -622,7 +632,8 @@ function renderBudgetTable(){
         <td class="${!bAW?'amt-dim':''}">${fmtB(bAW)}</td>
         <td style="font-weight:800;color:var(--sambucus);">${monthly?fmtB(monthly):'—'}</td>
         ${monthCells}
-        <td class="${isOver?'amt-over':''}" style="font-weight:700;">${fmt(spent)}</td>
+        <td style="font-weight:700;color:var(--sambucus);">${quarterlyBudget?fmtB(quarterlyBudget):'—'}</td>
+        <td style="${qTotalColor}font-weight:700;">${fmt(spent)}</td>
         <td>${badge}</td>
       </tr>`;
     } else {
@@ -642,8 +653,12 @@ function renderBudgetTable(){
 
   const totRem=tMon-tSpent;
   if(isQuarter){
-    const monthTotCells = tMonthSpend.map(v=>`<td style="color:var(--indigo);">${fmt(v)}</td>`).join('');
-    tfoot.innerHTML=`<tr class="total-row"><td>Total</td><td>${fmtB(tL1)}</td><td>${fmtB(tL2)}</td><td>${fmtB(tL3)}</td><td>${fmtB(tAW)}</td><td>${fmtB(tMon)}</td>${monthTotCells}<td style="color:var(--indigo);">${fmt(tSpent)}</td><td></td></tr>`;
+    const monthTotCells = tMonthSpend.map(v=>`<td style="font-weight:700;">${fmt(v)}</td>`).join('');
+    const tQuarterlyBudget = tMon * 3;
+    const tqOver = tQuarterlyBudget && tSpent > tQuarterlyBudget;
+    const tqWarn = tQuarterlyBudget && !tqOver && tSpent/tQuarterlyBudget*100 >= 80;
+    const tqColor = tqOver?'color:var(--red-text);':tqWarn?'color:var(--amber-text);':'color:var(--green-text);';
+    tfoot.innerHTML=`<tr class="total-row"><td>Total</td><td>${fmtB(tL1)}</td><td>${fmtB(tL2)}</td><td>${fmtB(tL3)}</td><td>${fmtB(tAW)}</td><td>${fmtB(tMon)}</td>${monthTotCells}<td>${fmtB(tQuarterlyBudget)}</td><td style="${tqColor}">${fmt(tSpent)}</td><td></td></tr>`;
   } else {
     tfoot.innerHTML=`<tr class="total-row"><td>Total</td><td>${fmtB(tL1)}</td><td>${fmtB(tL2)}</td><td>${fmtB(tL3)}</td><td>${fmtB(tAW)}</td><td>${fmtB(tMon)}</td><td style="color:var(--indigo);">${fmt(tSpent)}</td><td class="${totRem<0?'amt-over':''}">${(totRem<0?'-':'')+fmtB(Math.abs(totRem))}</td><td></td></tr>`;
   }
