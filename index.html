@@ -439,6 +439,10 @@ async function loadData(){
       else if(/scribd/i.test(merchant)){merchantCat='L3 Dinner';merchantEv='L3';}
       else if(/costco/i.test(merchant)){merchantCat='Event Materials';merchantEv='All Workshops';}
       else if(/imprint city/i.test(merchant)){merchantCat='Event Materials';merchantEv='All Workshops';}
+      else if(/uber.?eats|ubereats/i.test(merchant)){
+        if(/dietary.?restriction/i.test(memo)){merchantCat='Catering';merchantEv='All Workshops';}
+        else if(/team/i.test(memo)){merchantCat='Internal Team Expenses';merchantEv='All Workshops';}
+      }
       else if(/working lunch|team lunch|team bonding|team building|team dinner|team breakfast/i.test(memo)){merchantCat='Internal Team Expenses';merchantEv='All Workshops';}
       const detectedEv=evOverride||(merchantEv||detectEvent(memo,rampCat));
       // Never allow a category name to be used as an event
