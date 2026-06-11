@@ -427,7 +427,20 @@ async function loadData(){
       const rampCat=cols[iRamp]||'';
       const catOverride=iCatOverride>=0?cols[iCatOverride]:'';
       const evOverride=iEvOverride>=0?cols[iEvOverride]:'';
-      const detectedEv=evOverride||detectEvent(memo,rampCat);
+      // Merchant rules — always override detection
+      const ml=merchant.toLowerCase();
+      const memo_l=memo.toLowerCase();
+      let merchantCat=null, merchantEv=null;
+      if(/amazon/i.test(merchant)){merchantCat='Amazon';merchantEv='All Workshops';}
+      else if(/chatgpt|openai/i.test(merchant)){merchantCat='Internal Team Expenses';merchantEv='All Workshops';}
+      else if(/awg/i.test(merchant)){merchantCat='Transportation';merchantEv='All Workshops';}
+      else if(/luxury travel/i.test(merchant)){merchantCat='Event Materials';merchantEv='All Workshops';}
+      else if(/neuland/i.test(merchant)){merchantCat='Event Materials';merchantEv='All Workshops';}
+      else if(/scribd/i.test(merchant)){merchantCat='L3 Dinner';merchantEv='L3';}
+      else if(/costco/i.test(merchant)){merchantCat='Event Materials';merchantEv='All Workshops';}
+      else if(/imprint city/i.test(merchant)){merchantCat='Event Materials';merchantEv='All Workshops';}
+      else if(/working lunch|team lunch|team bonding|team building|team dinner|team breakfast/i.test(memo)){merchantCat='Internal Team Expenses';merchantEv='All Workshops';}
+      const detectedEv=evOverride||(merchantEv||detectEvent(memo,rampCat));
       // Never allow a category name to be used as an event
       const VALID_EVENTS=['L1','L2','L3','All Workshops'];
       const ev=VALID_EVENTS.includes(detectedEv)?detectedEv:detectedEv&&!VALID_EVENTS.includes(detectedEv)&&detectedEv!=='Overhead'?null:detectedEv;
@@ -435,7 +448,7 @@ async function loadData(){
         id:nextId++,
         date:parseDate(cols[iDate]||''),
         merchant,memo,
-        category:catOverride||detectCategory(merchant,rampCat,memo),
+        category:catOverride||(merchantCat||detectCategory(merchant,rampCat,memo)),
         event:ev||'Unmatched',
         holder:cols[iUser]||'',
         amount,
