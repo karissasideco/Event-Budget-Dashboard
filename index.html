@@ -348,6 +348,7 @@ function detectCategory(merchant, rampCat, memo){
   if(rl.includes('transportation')||rl.includes('rideshare')||rl.includes('taxi')) return 'Transportation';
   if(rl.includes('l3 dinner')||rl.includes('dinner')) return 'L3 Dinner';
   const meml=(memo||'').toLowerCase();
+  if(/internal.?team/i.test(meml)||/internal.?team/i.test((rampCat||'').toLowerCase())) return 'Internal Team Expenses';
   if(/cater/i.test(meml)) return 'Catering';
   if(/linen|napkin|drape/i.test(meml)) return 'Linen Rental';
   if(/swag|gift|candy/i.test(meml)) return 'Swag';
@@ -444,6 +445,7 @@ async function loadData(){
         else if(/team/i.test(memo)){merchantCat='Internal Team Expenses';merchantEv='All Workshops';}
       }
       else if(/working lunch|team lunch|team bonding|team building|team dinner|team breakfast/i.test(memo)){merchantCat='Internal Team Expenses';merchantEv='All Workshops';}
+      else if(/internal.?team/i.test(memo)||/internal.?team/i.test(rampCat)){merchantCat='Internal Team Expenses';merchantEv='All Workshops';}
       const detectedEv=evOverride||(merchantEv||detectEvent(memo,rampCat));
       // Never allow a category name to be used as an event
       const VALID_EVENTS=['L1','L2','L3','All Workshops'];
