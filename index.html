@@ -539,19 +539,56 @@ function renderMetrics(){
 }
 
 function renderBudgetTable(){
-  const txns=txnsForPeriod();
+  const isQuarter = activePeriod !== 'current';
+  const qdata = isQuarter ? QUARTERS[activePeriod] : null;
+
+  // Build table headers
+  const thead = document.querySelector('.budget-table thead tr');
+  if(isQuarter && qdata){
+    const monthHeaders = qdata.months.map(m=>`<th style="color:var(--indigo);">${MONTH_NAMES[m].slice(0,3)} Actual</th>`).join('');
+    thead.innerHTML=`
+      <th style="text-align:left;min-width:130px;">Category</th>
+      <th class="l1">L1</th><th class="l2">L2</th><th class="l3">L3</th>
+      <th class="aw">All Workshops</th>
+      <th>Monthly budget</th>
+      ${monthHeaders}
+      <th>Quarter total</th><th>Status</th>`;
+  } else {
+    thead.innerHTML=`
+      <th style="text-align:left;min-width:130px;">Category</th>
+      <th class="l1">L1</th><th class="l2">L2</th><th class="l3">L3</th>
+      <th class="aw">All Workshops</th>
+      <th>Monthly total</th><th>Actual spend</th><th>Remaining</th>
+      <th style="min-width:110px;">Status</th>`;
+  }
+
   const tbody=document.getElementById('budget-tbody');
   const tfoot=document.getElementById('budget-tfoot');
   let tL1=0,tL2=0,tL3=0,tAW=0,tMon=0,tSpent=0;
+  const tMonthSpend = isQuarter ? qdata.months.map(()=>0) : [];
+
   tbody.innerHTML=CATS.map((cat,i)=>{
     const bL1=(MONTHLY_BUDGETS['L1']||{})[cat]||0;
     const bL2=(MONTHLY_BUDGETS['L2']||{})[cat]||0;
     const bL3=(MONTHLY_BUDGETS['L3']||{})[cat]||0;
     const bAW=(MONTHLY_BUDGETS['All Workshops']||{})[cat]||0;
     const monthly=bL1+bL2+bL3+bAW;
-    const spent=txns.filter(r=>r.category===cat).reduce((s,r)=>s+r.amount,0);
+
+    let spent=0;
+    let monthSpends=[];
+    if(isQuarter && qdata){
+      monthSpends = qdata.months.map(m=>
+        allTxns.filter(r=>r.category===cat && r.date.startsWith(CURRENT_YEAR+'-'+m)).reduce((s,r)=>s+r.amount,0)
+      );
+      spent = monthSpends.reduce((s,v)=>s+v,0);
+    } else {
+      spent = txnsForPeriod().filter(r=>r.category===cat).reduce((s,r)=>s+r.amount,0);
+    }
+
     if(!monthly&&!spent) return '';
     tL1+=bL1;tL2+=bL2;tL3+=bL3;tAW+=bAW;tMon+=monthly;tSpent+=spent;
+    if(isQuarter) monthSpends.forEach((v,i)=>tMonthSpend[i]=(tMonthSpend[i]||0)+v);
+
     const rem=monthly-spent;
     const pct=monthly?Math.min(100,Math.round(spent/monthly*100)):null;
     const isOver=monthly&&spent>monthly,isWarn=monthly&&!isOver&&pct>=80;
@@ -559,18 +596,44 @@ function renderBudgetTable(){
       :isOver?`<span class="badge b-danger"><i class="ti ti-alert-triangle" style="font-size:9px;"></i> Over</span>`
       :isWarn?`<span class="badge b-warn"><i class="ti ti-alert-circle" style="font-size:9px;"></i> Near limit</span>`
       :`<span class="badge b-safe"><i class="ti ti-check" style="font-size:9px;"></i> On track</span>`;
-    return `<tr class="${isOver?'danger-row':isWarn?'warn-row':''}">
-      <td>${cat}</td>
-      <td class="${!bL1?'amt-dim':''}">${fmtB(bL1)}</td><td class="${!bL2?'amt-dim':''}">${fmtB(bL2)}</td>
-      <td class="${!bL3?'amt-dim':''}">${fmtB(bL3)}</td><td class="${!bAW?'amt-dim':''}">${fmtB(bAW)}</td>
-      <td style="font-weight:800;color:var(--sambucus);">${monthly?fmtB(monthly):'—'}</td>
-      <td style="color:var(--indigo);font-weight:600;" class="${isOver?'amt-over':''}">${fmt(spent)}</td>
-      <td class="${isOver?'amt-over':isWarn?'amt-warn':''}">${monthly?(isOver?'-':'')+fmtB(Math.abs(rem)):'—'}</td>
-      <td>${badge}</td>
-    </tr>`;
+
+    if(isQuarter){
+      const monthCells = monthSpends.map(v=>
+        `<td style="color:var(--indigo);font-weight:600;">${v>0?fmt(v):'—'}</td>`
+      ).join('');
+      return `<tr class="${isOver?'danger-row':isWarn?'warn-row':''}">
+        <td>${cat}</td>
+        <td class="${!bL1?'amt-dim':''}">${fmtB(bL1)}</td>
+        <td class="${!bL2?'amt-dim':''}">${fmtB(bL2)}</td>
+        <td class="${!bL3?'amt-dim':''}">${fmtB(bL3)}</td>
+        <td class="${!bAW?'amt-dim':''}">${fmtB(bAW)}</td>
+        <td style="font-weight:800;color:var(--sambucus);">${monthly?fmtB(monthly):'—'}</td>
+        ${monthCells}
+        <td class="${isOver?'amt-over':''}" style="font-weight:700;">${fmt(spent)}</td>
+        <td>${badge}</td>
+      </tr>`;
+    } else {
+      return `<tr class="${isOver?'danger-row':isWarn?'warn-row':''}">
+        <td>${cat}</td>
+        <td class="${!bL1?'amt-dim':''}">${fmtB(bL1)}</td>
+        <td class="${!bL2?'amt-dim':''}">${fmtB(bL2)}</td>
+        <td class="${!bL3?'amt-dim':''}">${fmtB(bL3)}</td>
+        <td class="${!bAW?'amt-dim':''}">${fmtB(bAW)}</td>
+        <td style="font-weight:800;color:var(--sambucus);">${monthly?fmtB(monthly):'—'}</td>
+        <td style="color:var(--indigo);font-weight:600;" class="${isOver?'amt-over':''}">${fmt(spent)}</td>
+        <td class="${isOver?'amt-over':isWarn?'amt-warn':''}">${monthly?(isOver?'-':'')+fmtB(Math.abs(rem)):'—'}</td>
+        <td>${badge}</td>
+      </tr>`;
+    }
   }).join('');
+
   const totRem=tMon-tSpent;
-  tfoot.innerHTML=`<tr class="total-row"><td>Total</td><td>${fmtB(tL1)}</td><td>${fmtB(tL2)}</td><td>${fmtB(tL3)}</td><td>${fmtB(tAW)}</td><td>${fmtB(tMon)}</td><td style="color:var(--indigo);">${fmt(tSpent)}</td><td class="${totRem<0?'amt-over':''}">${(totRem<0?'-':'')+fmtB(Math.abs(totRem))}</td><td></td></tr>`;
+  if(isQuarter){
+    const monthTotCells = tMonthSpend.map(v=>`<td style="color:var(--indigo);">${fmt(v)}</td>`).join('');
+    tfoot.innerHTML=`<tr class="total-row"><td>Total</td><td>${fmtB(tL1)}</td><td>${fmtB(tL2)}</td><td>${fmtB(tL3)}</td><td>${fmtB(tAW)}</td><td>${fmtB(tMon)}</td>${monthTotCells}<td style="color:var(--indigo);">${fmt(tSpent)}</td><td></td></tr>`;
+  } else {
+    tfoot.innerHTML=`<tr class="total-row"><td>Total</td><td>${fmtB(tL1)}</td><td>${fmtB(tL2)}</td><td>${fmtB(tL3)}</td><td>${fmtB(tAW)}</td><td>${fmtB(tMon)}</td><td style="color:var(--indigo);">${fmt(tSpent)}</td><td class="${totRem<0?'amt-over':''}">${(totRem<0?'-':'')+fmtB(Math.abs(totRem))}</td><td></td></tr>`;
+  }
 }
 
 function populateFilters(){
