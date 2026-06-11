@@ -558,14 +558,16 @@ function renderBudgetTable(){
   // Build table headers
   const thead = document.querySelector('.budget-table thead tr');
   if(isQuarter && qdata){
-    const monthHeaders = qdata.months.map(m=>`<th style="color:var(--indigo);">${MONTH_NAMES[m].slice(0,3)} Actual</th>`).join('');
+    const monthHeaders = qdata.months.map(m=>`<th style="color:var(--indigo);white-space:nowrap;">${MONTH_NAMES[m].slice(0,3)} Actual</th>`).join('');
     thead.innerHTML=`
       <th style="text-align:left;min-width:130px;">Category</th>
       <th class="l1">L1</th><th class="l2">L2</th><th class="l3">L3</th>
       <th class="aw">All Workshops</th>
-      <th>Monthly budget</th>
+      <th style="white-space:nowrap;">Monthly budget</th>
       ${monthHeaders}
-      <th>Quarter total</th><th>Status</th>`;
+      <th style="white-space:nowrap;color:var(--sambucus);">Quarterly budget</th>
+      <th style="white-space:nowrap;color:var(--sambucus);">Quarter total</th>
+      <th>Status</th>`;
   } else {
     thead.innerHTML=`
       <th style="text-align:left;min-width:130px;">Category</th>
