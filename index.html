@@ -333,7 +333,7 @@ function detectEvent(memo, rampCat){
   const L1=/\bl1\b/i.test(m),L2=/\bl2\b/i.test(m),L3=/\bl3\b/i.test(m);
   if((L1&&L2)||(L1&&L3)||(L2&&L3)) return 'All Workshops';
   if(L1) return 'L1'; if(L2) return 'L2'; if(L3) return 'L3';
-  if(/internal\s*team/i.test(m)||/team\s*bond/i.test(m)) return 'All Workshops';
+  if(/internal\s*team/i.test(m)||/team\s*bond/i.test(m)||/team\s*wow/i.test(m)||/wow\s*gift/i.test(m)) return 'All Workshops';
   if(/\ball\b/i.test(m)) return 'All Workshops';
   return null;
 }
@@ -407,7 +407,10 @@ async function loadData(){
       const rampCat=cols[iRamp]||'';
       const catOverride=iCatOverride>=0?cols[iCatOverride]:'';
       const evOverride=iEvOverride>=0?cols[iEvOverride]:'';
-      const ev=evOverride||detectEvent(memo,rampCat);
+      const detectedEv=evOverride||detectEvent(memo,rampCat);
+      // Never allow a category name to be used as an event
+      const VALID_EVENTS=['L1','L2','L3','All Workshops'];
+      const ev=VALID_EVENTS.includes(detectedEv)?detectedEv:detectedEv&&!VALID_EVENTS.includes(detectedEv)&&detectedEv!=='Overhead'?null:detectedEv;
       allTxns.push({
         id:nextId++,
         date:parseDate(cols[iDate]||''),
