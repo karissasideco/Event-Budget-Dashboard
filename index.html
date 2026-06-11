@@ -315,7 +315,7 @@ const QUARTERS={
   q4:{name:'Q4',label:'Oct – Dec',months:['10','11','12']}
 };
 const MONTH_NAMES={'01':'January','02':'February','03':'March','04':'April','05':'May','06':'June','07':'July','08':'August','09':'September','10':'October','11':'November','12':'December'};
-const MERCHANT_CAT={'amazon':'Amazon','instacart':'Instacart','costco':'Beverages','spotify':'Spotify','party rentals':'Linen Rental','just candy':'Swag','redline print group':'Event Materials','kassi beach house':'Internal Team Expenses'};
+const MERCHANT_CAT={'amazon':'Amazon','instacart':'Instacart','costco':'Beverages','spotify':'Spotify','party rentals':'Linen Rental','just candy':'Swag','redline print group':'Event Materials','kassi beach house':'Internal Team Expenses','lyft':'Transportation','uber':'Transportation','luxury travel':'Transportation','scribd':'L3 Dinner'};
 
 // Detect event from Ramp Category field first, then fall back to memo
 function detectEvent(memo, rampCat){
@@ -345,12 +345,16 @@ function detectCategory(merchant, rampCat, memo){
   if(rl.includes('restaurant')||rl.includes('catering')) return 'Catering';
   if(rl.includes('grocery')||rl.includes('supermarket')) return 'Instacart';
   if(rl.includes('office')) return 'Event Materials';
-  if(rl.includes('transportation')) return 'Transportation';
+  if(rl.includes('transportation')||rl.includes('rideshare')||rl.includes('taxi')) return 'Transportation';
+  if(rl.includes('l3 dinner')||rl.includes('dinner')) return 'L3 Dinner';
   const meml=(memo||'').toLowerCase();
   if(/cater/i.test(meml)) return 'Catering';
   if(/linen|napkin|drape/i.test(meml)) return 'Linen Rental';
   if(/swag|gift|candy/i.test(meml)) return 'Swag';
   if(/beverage|drink|water|coffee|bar/i.test(meml)) return 'Beverages';
+  if(/signage|print|collateral|backdrop|banner|fabric display/i.test(meml)) return 'Event Materials';
+  if(/transport|lyft|uber|shuttle|car service|travel/i.test(meml)) return 'Transportation';
+  if(/l3 dinner|client dinner|dinner deposit/i.test(meml)) return 'L3 Dinner';
   return 'Amazon';
 }
 
@@ -381,6 +385,22 @@ function fmt(n){return '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,max
 function fmtB(n){return n?'$'+Math.round(n).toLocaleString():'—';}
 function getMonthlyBudget(cat){return MONTHLY_BUDGET_OVERRIDE[cat]||['L1','L2','L3','All Workshops'].reduce((s,ev)=>s+((MONTHLY_BUDGETS[ev]||{})[cat]||0),0);}
 
+function parseCSVRow(row){
+  const result=[];
+  let cur='',inQuotes=false;
+  for(let i=0;i<row.length;i++){
+    const ch=row[i];
+    if(ch==='"'){
+      if(inQuotes&&row[i+1]==='"'){cur+='"';i++;}
+      else{inQuotes=!inQuotes;}
+    } else if(ch===','&&!inQuotes){
+      result.push(cur.trim());cur='';
+    } else{cur+=ch;}
+  }
+  result.push(cur.trim());
+  return result;
+}
+
 async function loadData(){
   document.getElementById('loading-screen').style.display='block';
   document.getElementById('error-screen').style.display='none';
@@ -399,7 +419,7 @@ async function loadData(){
     const iCatOverride=col('category override');
     const iEvOverride=col('event override');
     rows.slice(1).filter(r=>r.trim()).forEach(row=>{
-      const cols=row.split(',').map(c=>c.replace(/"/g,'').trim());
+      const cols=parseCSVRow(row);
       const amount=parseAmount(cols[iAmt]);
       if(!amount) return;
       const merchant=cols[iMerchant]||'';
