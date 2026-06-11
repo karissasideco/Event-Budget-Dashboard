@@ -507,7 +507,7 @@ function renderDrillDown(q){
     qTotal+=total;
     const byCat={};
     txns.forEach(r=>{byCat[r.category]=(byCat[r.category]||0)+r.amount;});
-    const rows=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([cat,amt])=>`<tr><td>${cat}</td><td>${fmt(amt)}</td></tr>`).join('');
+    const rows=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([cat,amt])=>`<tr><td>${cat}</td><td>${fmt(amt)}</td></tr>`).join('');
     return `<div class="month-col"><div class="month-col-header"><div class="month-col-name">${MONTH_NAMES[m]}</div><div class="month-col-total">${fmt(total)}</div></div><div><table class="month-mini-table">${rows||'<tr><td colspan="2" style="color:var(--text3);text-align:center;padding:1rem;">No data</td></tr>'}</table></div></div>`;
   }).join('');
   document.getElementById('drill-q-label').textContent=qdata.name+' Total';
