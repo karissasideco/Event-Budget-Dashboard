@@ -691,7 +691,7 @@ function renderTxns(){
   const merchants=[...new Set(periodTxns.map(r=>r.merchant))].filter(Boolean).sort();
   const curMe=me;
   if(meSel){
-    meSel.innerHTML='<option value="all">All merchants</option>'+merchants.map(m=>`<option value="${{m}}" ${{m===curMe?'selected':''}}>${{m}}</option>`).join('');
+    meSel.innerHTML='<option value="all">All merchants</option>'+merchants.map(m=>`<option value="${m}" ${m===curMe?'selected':''}>${m}</option>`).join('');
   }
   const txns=periodTxns.filter(r=>(ca==='all'||r.category===ca)&&(ho==='all'||r.holder===ho)&&(me==='all'||r.merchant===me));
   const tbody=document.getElementById('txn-tbody');
