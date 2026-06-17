@@ -264,6 +264,7 @@ table.txn tr:hover td{background:var(--bg-surface);}
       <div class="filters">
         <select id="f-cat" onchange="renderTxns()"><option value="all">All categories</option></select>
         <select id="f-holder" onchange="renderTxns()"><option value="all">All cardholders</option></select>
+        <select id="f-merchant" onchange="renderTxns()"><option value="all">All merchants</option></select>
       </div>
       <div style="overflow-x:auto;">
         <table class="txn">
@@ -682,8 +683,9 @@ function populateFilters(){
 function renderTxns(){
   const ca=document.getElementById('f-cat').value;
   const ho=document.getElementById('f-holder').value;
+  const me=document.getElementById('f-merchant').value;
   const base=txnsForPeriod();
-  const txns=base.filter(r=>(activeEvent==='all'||r.event===activeEvent)&&(ca==='all'||r.category===ca)&&(ho==='all'||r.holder===ho));
+  const txns=base.filter(r=>(activeEvent==='all'||r.event===activeEvent)&&(ca==='all'||r.category===ca)&&(ho==='all'||r.holder===ho)&&(me==='all'||r.merchant===me));
   const tbody=document.getElementById('txn-tbody');
   if(!txns.length){tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text3);">No transactions for this period.</td></tr>`;return;}
   tbody.innerHTML=[...txns].sort((a,b)=>b.date.localeCompare(a.date)).map(r=>`<tr>
