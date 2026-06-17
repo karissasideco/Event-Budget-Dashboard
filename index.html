@@ -266,6 +266,7 @@ table.txn tr:hover td{background:var(--bg-surface);}
         <select id="f-holder" onchange="renderTxns()"><option value="all">All cardholders</option></select>
         <select id="f-merchant" onchange="renderTxns()"><option value="all">All merchants</option></select>
       </div>
+      <div id="filter-summary" style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:1rem;flex-wrap:wrap;gap:8px;"></div>
       <div style="overflow-x:auto;">
         <table class="txn">
           <thead><tr><th>Date</th><th>Merchant</th><th>Category</th><th>Memo</th><th>Cardholder</th><th style="text-align:right">Amount</th><th>Event</th></tr></thead>
@@ -673,6 +674,14 @@ function renderBudgetTable(){
   }
 }
 
+function clearFilters(){
+  document.getElementById('f-cat').value='all';
+  document.getElementById('f-holder').value='all';
+  const me=document.getElementById('f-merchant');
+  if(me) me.value='all';
+  renderTxns();
+}
+
 function populateFilters(){
   const cats=[...new Set(allTxns.map(r=>r.category))].sort();
   const holders=[...new Set(allTxns.map(r=>r.holder))].sort();
@@ -694,6 +703,27 @@ function renderTxns(){
     meSel.innerHTML='<option value="all">All merchants</option>'+merchants.map(m=>`<option value="${m}" ${m===curMe?'selected':''}>${m}</option>`).join('');
   }
   const txns=periodTxns.filter(r=>(ca==='all'||r.category===ca)&&(ho==='all'||r.holder===ho)&&(me==='all'||r.merchant===me));
+  // Update filter summary bar
+  const filterBar = document.getElementById('filter-summary');
+  if(filterBar){
+    const filterTotal = txns.reduce((s,r)=>s+r.amount,0);
+    const isFiltered = ca!=='all'||ho!=='all'||me!=='all'||activeEvent!=='all';
+    filterBar.style.display = 'flex';
+    filterBar.innerHTML = `
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <i class="ti ti-filter" style="font-size:13px;color:var(--text3);"></i>
+        <span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em;">
+          ${txns.length} transaction${txns.length!==1?'s':''} 
+          ${isFiltered?'matching filters':'in this period'}
+        </span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;">Total</span>
+        <span style="font-size:20px;font-weight:800;color:var(--indigo);">${fmt(filterTotal)}</span>
+        ${isFiltered?`<button onclick="clearFilters()" style="font-size:10px;font-weight:600;font-family:var(--font);padding:3px 10px;border-radius:99px;border:0.5px solid var(--border2);background:var(--bg-surface);color:var(--text2);cursor:pointer;text-transform:uppercase;letter-spacing:0.04em;">Clear filters</button>`:''}
+      </div>`;
+  }
+
   const tbody=document.getElementById('txn-tbody');
   if(!txns.length){tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text3);">No transactions for this period.</td></tr>`;return;}
   tbody.innerHTML=[...txns].sort((a,b)=>b.date.localeCompare(a.date)).map(r=>`<tr>
