@@ -163,6 +163,7 @@ table.txn tr:hover td{background:var(--bg-surface);}
     <div class="header-right">
       <div class="status-pill"><span class="hdot" id="hdot"></span><span id="stxt">Loading data...</span></div>
       <button class="btn btn-white" onclick="loadData()"><i class="ti ti-refresh"></i> Refresh</button>
+      <button class="btn btn-white" onclick="if(confirm('Clear all saved assignments?')){clearSavedAssignments();loadData();}" title="Clear saved review assignments" style="padding:7px 10px;"><i class="ti ti-eraser"></i></button>
       <button class="btn btn-white" id="review-btn" onclick="startReview()" style="display:none;"><i class="ti ti-edit"></i> Review unmatched</button>
     </div>
   </div>
@@ -320,6 +321,43 @@ const MONTH_NAMES={'01':'January','02':'February','03':'March','04':'April','05'
 const MERCHANT_CAT={'amazon':'Amazon','instacart':'Instacart','costco':'Beverages','spotify':'Spotify','party rentals':'Linen Rental','just candy':'Swag','redline print group':'Event Materials','kassi beach house':'Internal Team Expenses','lyft':'Transportation','uber':'Transportation','luxury travel':'Transportation','scribd':'L3 Dinner'};
 
 // Detect event from Ramp Category field first, then fall back to memo
+// ── Persistent assignments (survives refresh) ──────────────
+const STORAGE_KEY = 'acq_event_budget_assignments';
+
+function saveAssignment(txn){
+  try{
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
+    // Key by date+merchant+amount so it matches across refreshes
+    const key = txn.date+'|'+txn.merchant+'|'+txn.amount;
+    saved[key] = {event: txn.event, category: txn.category};
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+  } catch(e){ console.warn('Could not save assignment', e); }
+}
+
+function loadAssignments(){
+  try{
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
+  } catch(e){ return {}; }
+}
+
+function applyAssignments(txns){
+  const saved = loadAssignments();
+  txns.forEach(r=>{
+    const key = r.date+'|'+r.merchant+'|'+r.amount;
+    if(saved[key]){
+      r.event = saved[key].event;
+      r.category = saved[key].category;
+      r.manuallyAssigned = true;
+    }
+  });
+  return txns;
+}
+
+function clearSavedAssignments(){
+  localStorage.removeItem(STORAGE_KEY);
+}
+// ────────────────────────────────────────────────────────────
+
 function detectEvent(memo, rampCat){
   // Ramp Category is the most reliable signal
   const rc=(rampCat||'').toLowerCase();
@@ -446,7 +484,7 @@ async function loadData(){
         if(/dietary.?restriction/i.test(memo)){merchantCat='Catering';merchantEv='All Workshops';}
         else if(/team/i.test(memo)){merchantCat='Internal Team Expenses';merchantEv='All Workshops';}
       }
-      else if(/working lunch|team lunch|team bonding|team building|team dinner|team breakfast/i.test(memo)){merchantCat='Internal Team Expenses';merchantEv='All Workshops';}
+      else if(/working lunch|team lunch|team bonding|team building|team dinner|team breakfast|team build|building lunch|bonding lunch|team activ|team outing|team celebrat|team event|lunch for|dinner for|breakfast for/i.test(memo)){merchantCat='Internal Team Expenses';merchantEv='All Workshops';}
       else if(/internal.?team/i.test(memo)||/internal.?team/i.test(rampCat)){merchantCat='Internal Team Expenses';merchantEv='All Workshops';}
       const detectedEv=evOverride||(merchantEv||detectEvent(memo,rampCat));
       // Never allow a category name to be used as an event
@@ -463,6 +501,9 @@ async function loadData(){
         overridden:!!(catOverride||evOverride)
       });
     });
+    // Re-apply any saved manual assignments
+    applyAssignments(allTxns);
+
     document.getElementById('loading-screen').style.display='none';
     document.getElementById('dash-body').style.display='block';
     document.getElementById('hdot').className='hdot';
