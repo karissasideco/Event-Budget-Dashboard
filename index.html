@@ -646,6 +646,12 @@ function renderBudgetTable(){
       );
       spent = monthSpends.reduce((s,v)=>s+v,0);
     } else {
+      const pct=monthly?Math.min(100,Math.round(spent/monthly*100)):null;
+      const isOver=monthly&&spent>monthly,isWarn=monthly&&!isOver&&pct>=80;
+      const badge=!monthly?`<span class="b-none">No budget</span>`
+        :isOver?`<span class="badge b-danger"><i class="ti ti-alert-triangle" style="font-size:9px;"></i> Over</span>`
+        :isWarn?`<span class="badge b-warn"><i class="ti ti-alert-circle" style="font-size:9px;"></i> Near limit</span>`
+        :`<span class="badge b-safe"><i class="ti ti-check" style="font-size:9px;"></i> On track</span>`;
       spent = txnsForPeriod().filter(r=>r.category===cat).reduce((s,r)=>s+r.amount,0);
     }
 
@@ -654,15 +660,16 @@ function renderBudgetTable(){
     if(isQuarter) monthSpends.forEach((v,i)=>tMonthSpend[i]=(tMonthSpend[i]||0)+v);
 
     const rem=monthly-spent;
-    const pct=monthly?Math.min(100,Math.round(spent/monthly*100)):null;
-    const isOver=monthly&&spent>monthly,isWarn=monthly&&!isOver&&pct>=80;
-    const badge=!monthly?`<span class="b-none">No budget</span>`
-      :isOver?`<span class="badge b-danger"><i class="ti ti-alert-triangle" style="font-size:9px;"></i> Over</span>`
-      :isWarn?`<span class="badge b-warn"><i class="ti ti-alert-circle" style="font-size:9px;"></i> Near limit</span>`
-      :`<span class="badge b-safe"><i class="ti ti-check" style="font-size:9px;"></i> On track</span>`;
 
     if(isQuarter){
       const quarterlyBudget = monthly * 3;
+      // In quarter view compare against quarterly budget
+      const pct=quarterlyBudget?Math.min(100,Math.round(spent/quarterlyBudget*100)):null;
+      const isOver=quarterlyBudget&&spent>quarterlyBudget,isWarn=quarterlyBudget&&!isOver&&pct>=80;
+      const badge=!quarterlyBudget?`<span class="b-none">No budget</span>`
+        :isOver?`<span class="badge b-danger"><i class="ti ti-alert-triangle" style="font-size:9px;"></i> Over</span>`
+        :isWarn?`<span class="badge b-warn"><i class="ti ti-alert-circle" style="font-size:9px;"></i> Near limit</span>`
+        :`<span class="badge b-safe"><i class="ti ti-check" style="font-size:9px;"></i> On track</span>`;
       const monthCells = monthSpends.map(v=>{
         if(!v) return `<td style="color:var(--text3);font-weight:600;">—</td>`;
         const mpct = monthly ? v/monthly*100 : null;
