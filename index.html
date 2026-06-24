@@ -638,6 +638,7 @@ function renderBudgetTable(){
     const bAW=(MONTHLY_BUDGETS['All Workshops']||{})[cat]||0;
     const monthly=bL1+bL2+bL3+bAW;
 
+    // Calculate spent correctly for both views
     let spent=0;
     let monthSpends=[];
     if(isQuarter && qdata){
@@ -646,12 +647,6 @@ function renderBudgetTable(){
       );
       spent = monthSpends.reduce((s,v)=>s+v,0);
     } else {
-      const pct=monthly?Math.min(100,Math.round(spent/monthly*100)):null;
-      const isOver=monthly&&spent>monthly,isWarn=monthly&&!isOver&&pct>=80;
-      const badge=!monthly?`<span class="b-none">No budget</span>`
-        :isOver?`<span class="badge b-danger"><i class="ti ti-alert-triangle" style="font-size:9px;"></i> Over</span>`
-        :isWarn?`<span class="badge b-warn"><i class="ti ti-alert-circle" style="font-size:9px;"></i> Near limit</span>`
-        :`<span class="badge b-safe"><i class="ti ti-check" style="font-size:9px;"></i> On track</span>`;
       spent = txnsForPeriod().filter(r=>r.category===cat).reduce((s,r)=>s+r.amount,0);
     }
 
@@ -662,14 +657,15 @@ function renderBudgetTable(){
     const rem=monthly-spent;
 
     if(isQuarter){
+      // Quarter view — compare against quarterly budget (monthly x3)
       const quarterlyBudget = monthly * 3;
-      // In quarter view compare against quarterly budget
-      const pct=quarterlyBudget?Math.min(100,Math.round(spent/quarterlyBudget*100)):null;
-      const isOver=quarterlyBudget&&spent>quarterlyBudget,isWarn=quarterlyBudget&&!isOver&&pct>=80;
-      const badge=!quarterlyBudget?`<span class="b-none">No budget</span>`
-        :isOver?`<span class="badge b-danger"><i class="ti ti-alert-triangle" style="font-size:9px;"></i> Over</span>`
-        :isWarn?`<span class="badge b-warn"><i class="ti ti-alert-circle" style="font-size:9px;"></i> Near limit</span>`
-        :`<span class="badge b-safe"><i class="ti ti-check" style="font-size:9px;"></i> On track</span>`;
+      const qPct = quarterlyBudget ? Math.min(100, Math.round(spent/quarterlyBudget*100)) : null;
+      const qIsOver = quarterlyBudget && spent > quarterlyBudget;
+      const qIsWarn = quarterlyBudget && !qIsOver && qPct >= 80;
+      const qBadge = !quarterlyBudget ? `<span class="b-none">No budget</span>`
+        : qIsOver ? `<span class="badge b-danger"><i class="ti ti-alert-triangle" style="font-size:9px;"></i> Over</span>`
+        : qIsWarn ? `<span class="badge b-warn"><i class="ti ti-alert-circle" style="font-size:9px;"></i> Near limit</span>`
+        : `<span class="badge b-safe"><i class="ti ti-check" style="font-size:9px;"></i> On track</span>`;
       const monthCells = monthSpends.map(v=>{
         if(!v) return `<td style="color:var(--text3);font-weight:600;">—</td>`;
         const mpct = monthly ? v/monthly*100 : null;
@@ -679,9 +675,7 @@ function renderBudgetTable(){
         const color = !monthly ? 'color:var(--indigo);' : mOver ? 'color:var(--red-text);' : mWarn ? 'color:var(--amber-text);' : 'color:var(--green-text);';
         return `<td style="${bg}${color}font-weight:700;border-radius:4px;">${fmt(v)}</td>`;
       }).join('');
-      const qOver = quarterlyBudget && spent > quarterlyBudget;
-      const qWarn = quarterlyBudget && !qOver && spent/quarterlyBudget*100 >= 80;
-      const qTotalColor = qOver ? 'color:var(--red-text);' : qWarn ? 'color:var(--amber-text);' : 'color:var(--green-text);';
+      const qTotalColor = qIsOver ? 'color:var(--red-text);' : qIsWarn ? 'color:var(--amber-text);' : 'color:var(--green-text);';
       return `<tr>
         <td>${cat}</td>
         <td class="${!bL1?'amt-dim':''}">${fmtB(bL1)}</td>
@@ -692,19 +686,27 @@ function renderBudgetTable(){
         ${monthCells}
         <td style="font-weight:700;color:var(--sambucus);">${quarterlyBudget?fmtB(quarterlyBudget):'—'}</td>
         <td style="${qTotalColor}font-weight:700;">${fmt(spent)}</td>
-        <td>${badge}</td>
+        <td>${qBadge}</td>
       </tr>`;
     } else {
-      return `<tr class="${isOver?'danger-row':isWarn?'warn-row':''}">
+      // Monthly view — compare against monthly budget
+      const mPct = monthly ? Math.min(100, Math.round(spent/monthly*100)) : null;
+      const mIsOver = monthly && spent > monthly;
+      const mIsWarn = monthly && !mIsOver && mPct >= 80;
+      const mBadge = !monthly ? `<span class="b-none">No budget</span>`
+        : mIsOver ? `<span class="badge b-danger"><i class="ti ti-alert-triangle" style="font-size:9px;"></i> Over</span>`
+        : mIsWarn ? `<span class="badge b-warn"><i class="ti ti-alert-circle" style="font-size:9px;"></i> Near limit</span>`
+        : `<span class="badge b-safe"><i class="ti ti-check" style="font-size:9px;"></i> On track</span>`;
+      return `<tr class="${mIsOver?'danger-row':mIsWarn?'warn-row':''}">
         <td>${cat}</td>
         <td class="${!bL1?'amt-dim':''}">${fmtB(bL1)}</td>
         <td class="${!bL2?'amt-dim':''}">${fmtB(bL2)}</td>
         <td class="${!bL3?'amt-dim':''}">${fmtB(bL3)}</td>
         <td class="${!bAW?'amt-dim':''}">${fmtB(bAW)}</td>
         <td style="font-weight:800;color:var(--sambucus);">${monthly?fmtB(monthly):'—'}</td>
-        <td style="color:var(--indigo);font-weight:600;" class="${isOver?'amt-over':''}">${fmt(spent)}</td>
-        <td class="${isOver?'amt-over':isWarn?'amt-warn':''}">${monthly?(isOver?'-':'')+fmtB(Math.abs(rem)):'—'}</td>
-        <td>${badge}</td>
+        <td style="color:var(--indigo);font-weight:600;" class="${mIsOver?'amt-over':''}">${fmt(spent)}</td>
+        <td class="${mIsOver?'amt-over':mIsWarn?'amt-warn':''}">${monthly?(mIsOver?'-':'')+fmtB(Math.abs(rem)):'—'}</td>
+        <td>${mBadge}</td>
       </tr>`;
     }
   }).join('');
