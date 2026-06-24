@@ -834,19 +834,24 @@ function renderReviewCard(){
     return;
   }
   const txn=unmatched[0]; selectedEv=null;
+  const catOptions=CATS.map(c=>`<option value="${c}" ${c===txn.category?'selected':''}>${c}</option>`).join('');
   document.getElementById('review-content').innerHTML=`
     <div class="review-card">
       <div class="review-merchant">${txn.merchant}</div>
       <div class="review-amount">${fmt(txn.amount)}</div>
       <div class="review-memo">${txn.memo||'No memo provided'}</div>
-      <div class="review-meta">${txn.date} · ${txn.holder.split(' ').slice(0,2).join(' ')} · ${txn.category}</div>
+      <div class="review-meta">${txn.date} · ${txn.holder.split(' ').slice(0,2).join(' ')}</div>
     </div>
-    <div style="font-size:9px;font-weight:600;color:var(--text3);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.07em;">Which event does this belong to?</div>
-    <div class="event-btns">
-      <button class="event-btn" onclick="selectEv(this,'L1',${txn.id})">L1</button>
-      <button class="event-btn" onclick="selectEv(this,'L2',${txn.id})">L2</button>
-      <button class="event-btn" onclick="selectEv(this,'L3',${txn.id})">L3</button>
-      <button class="event-btn" onclick="selectEv(this,'All Workshops',${txn.id})">All Workshops</button>
+    <div style="margin-bottom:1rem;">
+      <div style="font-size:9px;font-weight:600;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.07em;">1. Category</div>
+      <select id="review-cat-select" style="width:100%;font-size:12px;font-weight:600;font-family:var(--font);padding:9px 10px;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--bg-card);color:var(--text);margin-bottom:1rem;">${catOptions}</select>
+      <div style="font-size:9px;font-weight:600;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.07em;">2. Event</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button class="event-btn" onclick="selectEv(this,'L1',${txn.id})">L1</button>
+        <button class="event-btn" onclick="selectEv(this,'L2',${txn.id})">L2</button>
+        <button class="event-btn" onclick="selectEv(this,'L3',${txn.id})">L3</button>
+        <button class="event-btn" style="font-size:10px;" onclick="selectEv(this,'All Workshops',${txn.id})">All Workshops</button>
+      </div>
     </div>
     <div class="review-actions">
       <button class="btn btn-primary" id="assign-btn" onclick="assignEv(${txn.id})" style="opacity:0.4;pointer-events:none;"><i class="ti ti-check"></i> Assign</button>
@@ -862,7 +867,13 @@ function selectEv(btn,ev,id){
 function assignEv(id){
   if(!selectedEv) return;
   const txn=allTxns.find(r=>r.id===id);
-  if(txn){txn.event=selectedEv;txn.manuallyAssigned=true;}
+  const catSel=document.getElementById('review-cat-select');
+  if(txn){
+    txn.event=selectedEv;
+    txn.manuallyAssigned=true;
+    if(catSel) txn.category=catSel.value;
+    saveAssignment(txn);
+  }
   selectedEv=null;
   renderReviewCard(); updateUI(); renderBudgetTable(); renderMetrics();
 }
